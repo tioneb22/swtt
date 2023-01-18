@@ -303,13 +303,22 @@ def update_forwarding():
         new_mhtlc = int(float(chan_row.local_balance.replace(',','')) * 0.99) * 1000    # multiple by 1000 to get msat
         
         # configure tbl_forwarding variables
-        dfFwd.to_csv('dffwd.csv',index=False)
         chan_fwd_lct = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_check_time'].item()
         chan_fwd_lft = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_forward_time'].item()
         chan_fwd_ldt = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_decrement_time'].item()
         
-        # Check if channel is new, if so, setup channel with starting values, else continue
+        # Check if channel is new from initial setup
         if dfFwd.loc[dfFwd['chan_id']==chan_id,'new_chan'].item() == '1':
+            
+            # update channel and continue outer loop if there are no errors
+            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
+                continue
+        
+        # When channel is new but DB is already setup
+        if chan_id not in dfFwd['chan_id'].to_list():
+            
+            # Add new channel to tbl_forwarding
+            cur.execute(sql_tbl_forwarding_insert.format(cid=chan_id,lct=dt_now,lft=0,ldt=dt_now,nc='1'))
             
             # update channel and continue outer loop if there are no errors
             if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
@@ -365,7 +374,8 @@ if __name__ == "__main__":
     build_tbl_channels()    # Update channel info in case of changes
     
     # print the current state of channels
-    print(pd.read_sql_query("SELECT c.alias,c.chan_id,c.local_balance,c.ppm,c.htlc_size,f.last_check_time,f.last_forward_time,f.last_decrement_time FROM tbl_forwarding f INNER JOIN tbl_channels c ON c.chan_id = f.chan_id", con))
+    dfCurInfo = pd.read_sql_query("SELECT c.alias,c.chan_id,c.local_balance,c.ppm,c.htlc_size,f.last_check_time,f.last_forward_time,f.last_decrement_time FROM tbl_forwarding f INNER JOIN tbl_channels c ON c.chan_id = f.chan_id", con)
+    dfCurInfo.to_csv('swtt_current_channel_info.csv',index=False)   
     
     # log successful run of script
     log  = "Script ran successfully, " + str(chan_changes) + " channels were updated" 
