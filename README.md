@@ -34,8 +34,9 @@ The main things that need to be setup are:
 1. Add the user "swtt" and give it access to the "lnd" and "bos" groups
 2. Give "swtt" group access to your admin user
 3. Install Python and Virtual-Env
-4. Create the "swtt" virtual environment inside of /home/swtt
+4. Create the "swtt" virtual environment inside of the home dir (/home/swtt/)
 5. Activate Python and install required packages via pip
+6. Upload swtt.py to the virtual environment directory (/home/swtt/swtt/)
 
 ### Install Cron Job
 I suggest running the script every 30 minutes to 1 hour.
