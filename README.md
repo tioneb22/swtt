@@ -1,5 +1,9 @@
 # Swim With The Tide (swtt) 
+## Summary
 Swim With The Tide is a simple python script that decrements the ppm on your channels when they're inactive for a given period of time.  
+It uses SQLite3 to keep track of forwarding and channel infomation. The database file is ```swtt.db``` in the /home/swtt/swtt directory.  
+Deleting the swtt.db file will reset all channel PPM's to the specified starting value (--starting_ppm).  
+
 Manual run example: ```swtt.py -s 100 -t 1d -d 10 -m 5```  
 
 ## Parameters
@@ -24,10 +28,13 @@ The main things that need to be setup are:
 2. Give "swtt" group access to your admin user
 3. Install Python and Virtual-Env
 4. Create the "swtt" virtual environment inside of /home/swtt
-5. Active Python and install required packages via pip
+5. Activate Python and install required packages via pip
 
 ### Install Cron Job
 I suggest running the script every 30 minutes to 1 hour.
 
 As the swtt user: ```crontab -e```  
 ```*/30 * * * * cd /home/swtt/swtt && /home/swtt/swtt/bin/python3.9 /home/swtt/swtt/swtt.py -s 100 -t 1d -d 10 -m 5```  
+
+## Logging
+Logs are stored in the same folder as the script: /home/swtt/swtt/swtt.log
