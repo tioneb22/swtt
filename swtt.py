@@ -61,6 +61,9 @@ args = parser.parse_args()
 ###########
 # GLOBALS #
 ###########
+# counters
+chan_changes = 0
+
 # argument variables
 arg_starting_ppm = args.starting_ppm
 arg_decrement_ppm = args.decrement_ppm
@@ -248,7 +251,7 @@ def build_tbl_channels():
 
 # function to tweak channels and update tbl_forwarding table
 def update_channel(utype,alias,cp,cid,new_ppm,new_mhtlc,lft,ldt):
-    global con,cur
+    global con,cur,chan_changes
     
     # update SQL DB depending on type
     if utype == 'new':
@@ -256,6 +259,7 @@ def update_channel(utype,alias,cp,cid,new_ppm,new_mhtlc,lft,ldt):
         cur.execute(sql_tbl_forwarding_update_lct.format(cid=cid, lct=dt_now, nc='0'))
         log = "Setup new channel for " + alias + " (" + cid + ") / " + str(new_ppm) + " ppm / Max HTLC Size: " + str(new_mhtlc/1000) + " sats"
         logging.info(log)
+        chan_changes +=1
     elif utype == 'fwd':
         failed_list = [] # initialize empty list so funcion doesn't error out
         cur.execute(sql_tbl_forwarding_update_lct_lft.format(cid=cid, lct=dt_now, lft=lft, nc='0'))
@@ -264,6 +268,7 @@ def update_channel(utype,alias,cp,cid,new_ppm,new_mhtlc,lft,ldt):
         cur.execute(sql_tbl_forwarding_update_lct_ldt.format(cid=cid, lct=dt_now, ldt=dt_now, nc='0'))
         log = "Decremented Channel PPM for " + alias + " (" + cid + ") / " + str(new_ppm) + " ppm / Max HTLC Size: " + str(new_mhtlc/1000) + " sats"
         logging.info(log)
+        chan_changes +=1
     con.commit()
     
     # if error is in list from LNCLI update, exit script by raising error
@@ -361,6 +366,10 @@ if __name__ == "__main__":
     
     # print the current state of channels
     print(pd.read_sql_query("SELECT c.alias,c.chan_id,c.local_balance,c.ppm,c.htlc_size,f.last_check_time,f.last_forward_time,f.last_decrement_time FROM tbl_forwarding f INNER JOIN tbl_channels c ON c.chan_id = f.chan_id", con))
+    
+    # log successful run of script
+    log  = "Script ran successfully, " + str(chan_changes) + " channels were updated" 
+    logging.info(log)
     
     # commit then close SQL connection
     con.commit()
