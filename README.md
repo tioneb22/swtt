@@ -6,9 +6,10 @@ Operations Summary:
 1. It uses SQLite3 to keep track of forwarding and channel infomation.  
 2. The SQLite3 database file is ```swtt.db``` in the /home/swtt/swtt directory.  
 3. Deleting swtt.db will reset all channel PPM's to the specified starting value (--starting_ppm).  
-4. By default, the max HTLC size will be 99% of local balance (This could be optional parameter in future release)  
-5. By default, the base fee is set to 0, zero base fee is important for an optimized LN: https://youtu.be/WoVPkmT3gjY?t=2220  
+4. The max HTLC size will be 99% of local balance (This could be optional parameter in future release)  
+5. The base fee is set to 0, zero base fee is important for an optimized LN: https://youtu.be/WoVPkmT3gjY?t=2220  
 6. The current state of all channels is saved in the CSV swtt_current_channel_info.csv.  
+7. Script actions and errors are logged to ```swtt.log``` in the same directory as the script  
 
 Manual run example: ```swtt.py -s 100 -t 1d -d 10 -m 5```  
 
