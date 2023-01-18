@@ -2,7 +2,7 @@
 """
 Swim With The Tide - SWTT
 
-Version 0.1 beta
+Version 1.0
     -Tracks channel activity and decrements fee's until the ppm sweet-spot is reached
 
 Usage:
@@ -373,7 +373,7 @@ if __name__ == "__main__":
     update_forwarding()     # Update latest forward information
     build_tbl_channels()    # Update channel info in case of changes
     
-    # print the current state of channels
+    # Save CSV of current channels state
     dfCurInfo = pd.read_sql_query("SELECT c.alias,c.chan_id,c.local_balance,c.ppm,c.htlc_size,f.last_check_time,f.last_forward_time,f.last_decrement_time FROM tbl_forwarding f INNER JOIN tbl_channels c ON c.chan_id = f.chan_id", con)
     dfCurInfo.to_csv('swtt_current_channel_info.csv',index=False)   
     
