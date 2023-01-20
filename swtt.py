@@ -302,17 +302,20 @@ def update_forwarding():
         alias = chan_row.alias
         new_mhtlc = int(float(chan_row.local_balance.replace(',','')) * 0.99) * 1000    # multiple by 1000 to get msat
         
-        # configure tbl_forwarding variables
-        chan_fwd_lct = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_check_time'].item()
-        chan_fwd_lft = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_forward_time'].item()
-        chan_fwd_ldt = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_decrement_time'].item()
+        # configure tbl_forwarding variables when channel is already in forwarding table
+        if chan_id in dfFwd['chan_id'].to_list():
+            chan_fwd_lct = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_check_time'].item()
+            chan_fwd_lft = int(dfFwd.loc[dfFwd['chan_id']==chan_id,'last_forward_time'].item())
+            chan_fwd_ldt = dfFwd.loc[dfFwd['chan_id']==chan_id,'last_decrement_time'].item()
         
-        # Check if channel is new from initial setup
-        if dfFwd.loc[dfFwd['chan_id']==chan_id,'new_chan'].item() == '1':
+        # Check if channel is new from initial setup, must be in tbl_forwarding first
+        if chan_id in dfFwd['chan_id'].to_list():
             
-            # update channel and continue outer loop if there are no errors
-            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
-                continue
+            if dfFwd.loc[dfFwd['chan_id']==chan_id,'new_chan'].item() == '1':
+                
+                # update channel and continue outer loop if there are no errors
+                if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
+                    continue
         
         # When channel is new but DB is already setup
         if chan_id not in dfFwd['chan_id'].to_list():
@@ -321,7 +324,7 @@ def update_forwarding():
             cur.execute(sql_tbl_forwarding_insert.format(cid=chan_id,lct=dt_now,lft=0,ldt=dt_now,nc='1'))
             
             # update channel and continue outer loop if there are no errors
-            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
+            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,0,dt_now):
                 continue
 
         # if new forwards DF isn't blank and there's a new forward for given channel 
