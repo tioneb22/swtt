@@ -117,7 +117,7 @@ def setup_vars():
         
     # Setup other needed variables
     dt_now = datetime.now()             # runtime DT var
-    stale_time = h                      # stale lookup back * 2 (use in new forwards lookup)
+    stale_time = h                      # stale time for decrementing channels
     starting_ppm = arg_starting_ppm     # setup starting ppm variable
     
     return
@@ -249,8 +249,29 @@ def build_tbl_channels():
     con.commit()
     return
 
+# function to decrement the PPM on a channel
+def decrement_ppm(alias, chan_point, chan_id, new_mhtlc, chan_fwd_lft, chan_fwd_lct, dt_lct_thresh, chan_ppm):
+    global arg_decrement_ppm,arg_min_ppm
+    
+    # get datetime from string
+    chan_fwd_lct_dt = datetime.strptime(chan_fwd_lct, '%Y-%m-%d %H:%M:%S.%f')
+    
+    # if the last check time is stale compared to threshold, decrement ppm
+    if chan_fwd_lct_dt < dt_lct_thresh:
+        
+        # ppm logic
+        dec_ppm = chan_ppm - arg_decrement_ppm
+        
+        # don't decrement if already at floor
+        if dec_ppm <= arg_min_ppm:
+            dec_ppm = arg_min_ppm
+            
+        # update channel and continue outer loop if there are no errors
+        if update_channel('dec',alias,chan_point,chan_id,dec_ppm,new_mhtlc,chan_fwd_lft):
+            return
+        
 # function to tweak channels and update tbl_forwarding table
-def update_channel(utype,alias,cp,cid,new_ppm,new_mhtlc,lft,ldt):
+def update_channel(utype,alias,cp,cid,new_ppm,new_mhtlc,lft):
     global con,cur,chan_changes
     
     # update SQL DB depending on type
@@ -314,7 +335,7 @@ def update_forwarding():
             if dfFwd.loc[dfFwd['chan_id']==chan_id,'new_chan'].item() == '1':
                 
                 # update channel and continue outer loop if there are no errors
-                if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
+                if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,chan_fwd_lft):
                     continue
         
         # When channel is new but DB is already setup
@@ -324,10 +345,10 @@ def update_forwarding():
             cur.execute(sql_tbl_forwarding_insert.format(cid=chan_id,lct=dt_now,lft=0,ldt=dt_now,nc='1'))
             
             # update channel and continue outer loop if there are no errors
-            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,0,dt_now):
+            if update_channel('new',alias,chan_point,chan_id,starting_ppm,new_mhtlc,0):
                 continue
 
-        # if new forwards DF isn't blank and there's a new forward for given channel 
+        # Check for new forwards, potentially decrement channel if no forwards are found
         if  len(dfNewFwds)!=0:
             if chan_id in dfNewFwds['chan_id_out'].to_list():
         
@@ -341,29 +362,18 @@ def update_forwarding():
                     if chan_id == fwd_row.chan_id_out and chan_fwd_lft < cur_fwd_ts:
                         
                         # update channel and continue outer loop if there are no errors
-                        if update_channel('fwd',alias,chan_point,chan_id,0,new_mhtlc,cur_fwd_ts,chan_fwd_ldt):
+                        if update_channel('fwd',alias,chan_point,chan_id,0,new_mhtlc,cur_fwd_ts):
                             break
                 continue
+            
+            # if chan_id not in new forwards, then potentially decrement PPM on channel
+            else:
+                decrement_ppm(alias,chan_point,chan_id,new_mhtlc,chan_fwd_lft,chan_fwd_lct,dt_lct_thresh,chan_ppm)
                 
         # else there's no new forwards, potentially decrement PPM
         else:
-            
-            # get datetime from string
-            chan_fwd_lct_dt = datetime.strptime(chan_fwd_lct, '%Y-%m-%d %H:%M:%S.%f')
-            
-            # if the last check time is stale compared to threshold, decrement ppm
-            if chan_fwd_lct_dt < dt_lct_thresh:
-                
-                # ppm logic
-                dec_ppm = chan_ppm - arg_decrement_ppm
-                
-                # don't decrement if already at floor
-                if dec_ppm <= arg_min_ppm:
-                    dec_ppm = arg_min_ppm
-                    
-                # update channel and continue outer loop if there are no errors
-                if update_channel('dec',alias,chan_point,chan_id,dec_ppm,new_mhtlc,chan_fwd_lft,chan_fwd_ldt):
-                    continue
+            decrement_ppm(alias,chan_point,chan_id,new_mhtlc,chan_fwd_lft,chan_fwd_lct,dt_lct_thresh,chan_ppm)
+
     return
     
 
