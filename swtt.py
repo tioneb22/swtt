@@ -208,6 +208,17 @@ def return_max_htlc(row):
             if js[item]['last_update'] == js['last_update']:
                 return int(js[item]['max_htlc_msat'][:-3])
     
+# function to import channel Id's from 'swtt.ignore' file
+def import_chan_id_ignores():
+    try:
+        with open('swtt.ignore') as f:
+            chan_ignore_list = f.read().splitlines()
+        return chan_ignore_list
+    except Exception as e:
+        error = "Error while importing ignore list: " + str(e)
+        logging.info(error)
+        raise ValueError(error)
+    
 # function to return list of all chan_id's 
 def build_tbl_channels():
     global con,cur
@@ -242,6 +253,9 @@ def build_tbl_channels():
     
     # keep only required columns
     dfChan = dfChan[['chan_id','channel_point','alias','remote_pubkey','local_balance','remote_balance','ppm','htlc_size','send_ratio','type','balance_ratio',"sats_missing_for_balance",'active_ratio']]
+    
+    # remove ignored channels
+    dfChan = dfChan[~dfChan['chan_id'].isin(import_chan_id_ignores())]
     
     # Replace table in DB
     cur.execute("DROP TABLE IF EXISTS tbl_channels")
@@ -397,4 +411,4 @@ if __name__ == "__main__":
     # commit then close SQL connection
     con.commit()
     con.close()
-    
+        

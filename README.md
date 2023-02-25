@@ -11,6 +11,7 @@ Operations Summary:
 6. The CLTV (Time Lock Delta) is 144 by default (Could be optional parameter in future)  
 7. The current state of all channels is saved in the CSV swtt_current_channel_info.csv.  
 8. Script actions and errors are logged to ```swtt.log``` in the same directory as the script  
+9. Channel ID's listed in the ```swtt.ignore``` file are ignored and not updated.
 
 Manual run example: ```swtt.py -s 100 -t 1d -d 10 -m 5```  
 
